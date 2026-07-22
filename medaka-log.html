@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>めだか繁殖ログ</title>
+<style>
+:root{
+  --bg:#0e1208;--bg2:#161d0c;--panel:#1b2410;--panel2:#222e14;
+  --line:#2e3d1c;--line2:#3d5025;
+  --text:#dde8c8;--muted:#7d9460;--dim:#4a5e35;
+  --accent:#8fcf4a;--accent2:#c8e87a;--accent3:#4a7a1e;
+  --water:#3a9fbf;--egg:#f5c842;--warn:#e06b3a;--good:#4acf8f;
+  --r:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html{background:var(--bg);color:var(--text);font-family:-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;min-height:100vh}
+body{max-width:480px;margin:0 auto;padding-bottom:90px}
+
+.hdr{background:var(--bg2);border-bottom:1px solid var(--line);padding:12px 16px 10px;position:sticky;top:0;z-index:10}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.logo{font-size:18px;font-weight:800;color:var(--accent2)}
+.logo em{font-style:normal;font-weight:400;font-size:11px;color:var(--muted);margin-left:5px}
+.mode-toggle{display:flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+.mode-toggle button{background:none;border:none;color:var(--muted);font:12px/1 inherit;padding:5px 9px;cursor:pointer}
+.mode-toggle button.on{background:var(--accent3);color:var(--accent2);font-weight:700}
+.btn-add{background:var(--accent);color:#0e1208;border:none;border-radius:10px;padding:7px 12px;font:700 13px/1 inherit;cursor:pointer}
+.hdr-search{display:flex;gap:6px}
+.hdr-search input{flex:1;background:var(--panel);border:1px solid var(--line2);border-radius:9px;color:var(--text);font:13px/1 inherit;padding:8px 11px;outline:none}
+.hdr-search input::placeholder{color:var(--dim)}
+.hdr-search select{background:var(--panel);border:1px solid var(--line2);border-radius:9px;color:var(--text);font:12px/1 inherit;padding:7px 8px;outline:none;-webkit-appearance:none;max-width:100px}
+
+.view{display:none}.view.on{display:block}
+.pad{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);overflow:hidden;cursor:pointer}
+.card:active{border-color:var(--accent3)}
+.card-top{display:flex;gap:11px;padding:12px 12px 9px}
+.card-img{width:56px;height:56px;border-radius:9px;object-fit:cover;background:var(--panel2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--dim)}
+.card-main{flex:1;min-width:0}
+.card-name{font-size:15px;font-weight:700;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-sub{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chips{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.chip{font-size:11px;color:var(--dim);background:var(--panel2);border-radius:5px;padding:2px 6px;white-space:nowrap}
+.chip.egg{color:var(--egg)}.chip.hatch{color:var(--water)}.chip.good{color:var(--good)}.chip.warn{color:var(--warn)}.chip.accent{color:var(--accent)}
+.card-body{font-size:12px;color:var(--muted);padding:0 12px 10px;line-height:1.55;white-space:pre-wrap;word-break:break-all}
+.sel-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);margin-top:1px}
+.sel-col{background:var(--panel2);padding:6px 4px;text-align:center}
+.sel-col .sv{font-size:14px;font-weight:700}
+.sel-col .sl{font-size:10px;color:var(--muted);margin-top:1px}
+.sel-col.sa .sv{color:var(--accent2)}.sel-col.sb .sv{color:var(--water)}.sel-col.sc .sv{color:var(--muted)}.sel-col.sd .sv{color:var(--warn)}
+
+/* cross search */
+.cross-box{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:14px}
+.cross-box h3{font-size:13px;color:var(--accent);margin-bottom:10px}
+.cross-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px}
+.cross-row input{flex:1;background:var(--panel2);border:1px solid var(--line2);border-radius:9px;color:var(--text);font:13px/1 inherit;padding:8px 10px;outline:none}
+.cross-row input::placeholder{color:var(--dim)}
+.btn-search{background:var(--accent3);color:var(--accent2);border:none;border-radius:9px;padding:8px 14px;font:700 13px/1 inherit;cursor:pointer;white-space:nowrap}
+.cross-results{margin-top:8px}
+.no-result{font-size:12px;color:var(--dim);text-align:center;padding:12px}
+
+/* stats */
+.stats-wrap{padding:14px}
+.stat-card{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:13px 15px;margin-bottom:10px}
+.stat-lbl{font-size:12px;color:var(--muted);margin-bottom:5px}
+.stat-big{font-size:26px;font-weight:800;color:var(--accent2)}
+.stat-sub{font-size:11px;color:var(--dim);margin-top:2px}
+.tbl-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+.tbl-row:last-child{border-bottom:none}
+.tbl-val{color:var(--accent);font-weight:700}
+.rate-wrap{margin-top:8px}
+.rate-row{display:flex;align-items:center;gap:7px;margin-bottom:5px;font-size:12px}
+.rate-lbl{width:40px;color:var(--muted)}
+.rate-bar{flex:1;height:6px;border-radius:3px;background:var(--panel2);overflow:hidden}
+.rate-fill{height:100%;border-radius:3px}
+.rate-num{width:50px;text-align:right;color:var(--text);font-size:11px}
+
+/* nav */
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--line);display:flex;max-width:480px;margin:0 auto;z-index:10}
+.nav button{flex:1;background:none;border:none;color:var(--dim);font:10px/1 inherit;padding:9px 0 13px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.nav button.on{color:var(--accent)}
+.nav button svg{width:20px;height:20px}
+
+/* overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:20;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.show{opacity:1;pointer-events:all}
+.sheet{background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-width:480px;margin:0 auto;padding:18px 16px 44px;max-height:93vh;overflow-y:auto;transform:translateY(50px);transition:transform .22s}
+.overlay.show .sheet{transform:translateY(0)}
+.sheet-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.sheet-hdr h2{font-size:16px;font-weight:700;color:var(--accent2)}
+.sheet-hdr button{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px}
+
+/* form */
+.f-lbl{display:block;font-size:11px;color:var(--muted);margin:11px 0 3px}
+.f-lbl:first-child{margin-top:0}
+.f-in{width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:9px;color:var(--text);font:14px/1.4 inherit;padding:9px 11px;outline:none;-webkit-appearance:none}
+.f-in:focus{border-color:var(--accent3)}
+textarea.f-in{resize:vertical;min-height:64px;line-height:1.5}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.f-sec{background:var(--panel);border:1px solid var(--line2);border-radius:11px;padding:11px;margin-top:11px}
+.f-sec-title{font-size:11px;color:var(--accent);font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:5px}
+/* checkboxes */
+.cb-grid{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.cb-item{display:flex;align-items:center;gap:4px;background:var(--panel2);border:1px solid var(--line2);border-radius:7px;padding:4px 9px;cursor:pointer;font-size:12px}
+.cb-item input{accent-color:var(--accent);width:13px;height:13px}
+/* photo */
+.photo-box{width:100%;height:90px;background:var(--panel);border:1px dashed var(--line2);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;cursor:pointer;color:var(--dim);font-size:12px;overflow:hidden;position:relative;margin-top:3px}
+.photo-box img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.photo-box input{position:absolute;inset:0;opacity:0;cursor:pointer}
+/* badge picker */
+.badge-pick{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.badge{display:inline-flex;align-items:center;gap:3px;background:var(--panel2);border:1px solid var(--line2);border-radius:7px;padding:4px 8px;font-size:12px;cursor:pointer}
+.badge.on{border-color:var(--accent3);background:var(--accent3);color:var(--accent2)}
+/* btn row */
+.btn-row{display:flex;gap:8px;margin-top:16px}
+.btn-save{flex:1;background:var(--accent);color:#0e1208;border:none;border-radius:10px;padding:12px;font:700 14px/1 inherit;cursor:pointer}
+.btn-del{background:var(--panel2);color:var(--warn);border:1px solid var(--line2);border-radius:10px;padding:12px 14px;font:700 13px/1 inherit;cursor:pointer}
+.btn-save:active,.btn-del:active{opacity:.75}
+/* lineage pill */
+.lineage-pill{display:inline-block;background:var(--accent3);color:var(--accent2);border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700}
+/* empty */
+.empty{text-align:center;padding:44px 20px;color:var(--dim)}
+.empty big{display:block;font-size:40px;margin-bottom:8px}
+.empty p{font-size:13px;line-height:1.7}
+/* photo compare */
+.photo-compare{display:flex;gap:6px;overflow-x:auto;padding:10px 12px 12px;-webkit-overflow-scrolling:touch}
+.photo-compare-item{flex:0 0 auto;text-align:center}
+.photo-compare-item img{width:100px;height:100px;object-fit:cover;border-radius:9px;display:block}
+.photo-compare-item .pc-lbl{font-size:10px;color:var(--muted);margin-top:4px}
+.photo-compare-item .pc-date{font-size:10px;color:var(--dim);margin-top:1px}
+/* survival log */
+.surv-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:12px}
+.surv-row:last-child{border-bottom:none}
+.surv-cnt{font-size:15px;font-weight:700;color:var(--accent2);min-width:44px}
+.surv-rate{font-size:11px;color:var(--muted)}
+.surv-bar{flex:1;height:5px;border-radius:3px;background:var(--panel2);overflow:hidden}
+.surv-fill{height:100%;border-radius:3px;background:var(--accent)}
+/* tank history */
+.hist-row{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px;gap:8px}
+.hist-row:last-child{border-bottom:none}
+.hist-date{color:var(--muted);white-space:nowrap;min-width:52px}
+.hist-body{flex:1;color:var(--text);line-height:1.5}
+.hist-del{color:var(--warn);font-size:18px;padding:0 4px;cursor:pointer;line-height:1}
+/* lock / unlock */
+.lock-banner{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:14px;margin:12px 14px 0;text-align:center}
+.lock-banner p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:10px}
+.btn-unlock{background:var(--accent);color:#0e1208;border:none;border-radius:10px;padding:11px 20px;font:700 14px/1 inherit;cursor:pointer;width:100%}
+.unlock-input{width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:9px;color:var(--text);font:16px/1 inherit;padding:11px 12px;outline:none;text-align:center;letter-spacing:3px;margin-bottom:10px}
+.unlock-input:focus{border-color:var(--accent3)}
+.unlock-err{font-size:12px;color:var(--warn);text-align:center;margin-bottom:8px;min-height:16px}
+/* export/import buttons */
+.btn-export{width:100%;background:var(--panel2);border:1px solid var(--line2);border-radius:9px;color:var(--text);font:13px/1 inherit;padding:10px 12px;cursor:pointer;text-align:left}
+.btn-export:active{opacity:.75}
+.btn-import{display:block;width:100%;background:var(--accent3);border:1px solid var(--accent3);border-radius:9px;color:var(--accent2);font:700 13px/1 inherit;padding:10px 12px;cursor:pointer;text-align:center}
+.btn-import:active{opacity:.75}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="logo">めだか繁殖ログ <em>🐟 v1.1</em></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <div class="mode-toggle">
+        <button id="modeBasic" class="on" onclick="setMode('basic')">基本</button>
+        <button id="modeBreeder" onclick="breederTap()">ブリーダー</button>
+      </div>
+      <button class="btn-add" id="addBtn" onclick="openAdd()">＋</button>
+    </div>
+  </div>
+  <div class="hdr-search" id="hdrSearch">
+    <input id="searchInput" type="text" placeholder="品種・メモで検索…" oninput="renderActive()">
+    <select id="filterBreed" onchange="renderActive()"><option value="">すべて</option></select>
+  </div>
+</div>
+
+<div id="vRecords" class="view on"><div class="pad" id="listRecords"></div></div>
+<div id="vTanks"   class="view"><div class="pad" id="listTanks"></div></div>
+<div id="vSeeds"   class="view"><div class="pad" id="listSeeds"></div></div>
+<div id="vLineage" class="view"><div class="pad" id="listLineage"></div></div>
+<div id="vStats" class="view">
+  <div class="stats-wrap" id="statsEl"></div>
+  <div class="stats-wrap" style="padding-top:0">
+    <div class="stat-card">
+      <div class="stat-lbl" style="font-size:13px;font-weight:700;color:var(--accent)">📁 データ管理</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <button class="btn-export" onclick="exportAll()">⬇️ 全データをバックアップ（JSON）</button>
+        <button class="btn-export" onclick="exportCSV('records')">📄 繁殖記録を CSV 出力</button>
+        <button class="btn-export" onclick="exportCSV('tanks')">📄 容器一覧を CSV 出力</button>
+        <button class="btn-export" onclick="exportCSV('seeds')">📄 種親一覧を CSV 出力</button>
+        <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:2px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:7px">⬆️ JSONファイルからインポート（機種変更・復元）</div>
+          <label class="btn-import">ファイルを選んでインポート<input type="file" accept=".json" onchange="importAll(event)" style="display:none"></label>
+        </div>
+        <div style="font-size:11px;color:var(--dim);line-height:1.65;margin-top:2px">
+          JSON＝全データを丸ごと保存。機種変更時はJSON書き出し→新端末でインポートすれば完全復元できます。CSV＝ExcelやNumbersで開いて分析に使えます。写真データはJSONのみに含まれます。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="nav">
+  <button class="on" id="navR" onclick="switchTab('records')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="11" height="4" rx="1"/></svg>記録
+  </button>
+  <button id="navT" onclick="switchTab('tanks')" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/></svg>容器
+  </button>
+  <button id="navS" onclick="switchTab('seeds')" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>種親
+  </button>
+  <button id="navL" onclick="switchTab('lineage')" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M8 6l4-4 4 4M6 10h12M9 14v4m6-4v4M7 22h4m2 0h4"/></svg>系統
+  </button>
+  <button id="navSt" onclick="switchTab('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>統計
+  </button>
+</nav>
+
+<div class="overlay" id="overlay" onclick="bgClose(event)">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<script>
+/* ============================================================
+   DATA SCHEMA v1.1
+   records: id, breed, lineageId, lineageLabel,
+            dad, dadSeedId, mom, momSeedId,
+            spawnDate, hatchDate, hatchCount,
+            selectDate, selectCount,
+            selA, selB, selC, selD,
+            selReasonA[], selReasonB[], selReasonC[], selReasonD[],
+            tankId, tankName, seedIds,
+            survivalLog[], deathCount, deathReason,
+            memo, photo, updatedAt
+   tanks:   id, name, breed, lineageId, fishCount, fryCount,
+            selectDate, history[], memo, photo, updatedAt
+   seeds:   id, sex, name, breed, lineageId, status,
+            deathReason, memo, photo, updatedAt
+   lineages:id, name, breed, gen, notes, updatedAt
+============================================================ */
+
+const K={rec:'mdRec_v2',tank:'mdTank_v1',seed:'mdSeed_v1',lin:'mdLin_v1'};
+let records=[], tanks=[], seeds=[], lineages=[];
+let mode='basic', activeTab='records';
+let editId=null, editType=null, photoUrl=null;
+
+const SEL_REASONS={
+  A:['ラメ','体外光','体型','発色','ヒレ','大きさ'],
+  B:['ラメ','体型','発色','普通個体'],
+  C:['ラメ薄い','体外光不足','発色薄い','小さい','普通以下'],
+  D:['背曲がり','ヒレ異常','体型不良','色飛び','奇形','弱個体']
+};
+const DEATH_REASONS=['病気','背曲がり','ヒレ異常','体型不良','弱個体','自然死','販売','譲渡','その他'];
+
+/* ---------- storage ---------- */
+function ld(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch{return[];}}
+function sv(){
+  localStorage.setItem(K.rec,JSON.stringify(records));
+  localStorage.setItem(K.tank,JSON.stringify(tanks));
+  localStorage.setItem(K.seed,JSON.stringify(seeds));
+  localStorage.setItem(K.lin,JSON.stringify(lineages));
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function esc(s){const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;}
+function fmtD(s){if(!s)return '';const p=s.split('-');return p.length===3?`${+p[1]}/${+p[2]}`:s;}
+function today(){return new Date().toISOString().slice(0,10);}
+function v(id){const el=document.getElementById(id);return el?el.value:'';}
+function getChecked(name){return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el=>el.value);}
+
+/* ---------- mode ---------- */
+function setMode(m){
+  mode=m;
+  document.getElementById('modeBasic').className=m==='basic'?'on':'';
+  document.getElementById('modeBreeder').className=m==='breeder'?'on':'';
+  ['navT','navS','navL'].forEach(id=>document.getElementById(id).style.display=m==='breeder'?'':'none');
+  if(m==='basic'&&['tanks','seeds','lineage'].includes(activeTab)) switchTab('records');
+  renderActive();
+}
+
+/* ---------- tabs ---------- */
+function switchTab(t){
+  activeTab=t;
+  const map={records:'R',tanks:'T',seeds:'S',lineage:'L',stats:'St'};
+  ['records','tanks','seeds','lineage','stats'].forEach(v=>{
+    const vel=document.getElementById('v'+cap(v)); if(vel) vel.className='view'+(v===t?' on':'');
+    const nel=document.getElementById('nav'+map[v]); if(nel) nel.className=(v===t?'on':'');
+  });
+  document.getElementById('hdrSearch').style.display=t==='stats'?'none':'flex';
+  const ab=document.getElementById('addBtn');
+  ab.style.display=t==='stats'?'none':'';
+  ab.textContent={records:'＋ 記録',tanks:'＋ 容器',seeds:'＋ 種親',lineage:'＋ 系統'}[t]||'＋';
+  restoreMode(); refreshBreedFilter(); renderActive();
+}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+function openAdd(){
+  if(activeTab==='records') openRecordForm();
+  else if(activeTab==='tanks') openTankForm();
+  else if(activeTab==='seeds') openSeedForm();
+  else if(activeTab==='lineage') openLineageForm();
+}
+function renderActive(){
+  if(activeTab==='records') renderRecords();
+  else if(activeTab==='tanks') renderTanks();
+  else if(activeTab==='seeds') renderSeeds();
+  else if(activeTab==='lineage') renderLineage();
+  else renderStats();
+}
+
+/* ---------- filter ---------- */
+function refreshBreedFilter(){
+  const breeds=[...new Set(records.map(r=>r.breed).filter(Boolean))].sort();
+  const sel=document.getElementById('filterBreed');
+  const cur=sel.value;
+  sel.innerHTML=`<option value="">すべて</option>`+breeds.map(b=>`<option${b===cur?' selected':''}>${esc(b)}</option>`).join('');
+}
+function getFilter(){
+  return{q:document.getElementById('searchInput').value.trim().toLowerCase(),
+         breed:document.getElementById('filterBreed').value};
+}
+
+/* ============================================================
+   RECORDS
+============================================================ */
+function renderRecords(){
+  const{q,breed}=getFilter();
+  let rows=records.filter(r=>{
+    const mq=!q||[r.breed,r.memo,r.tankName,r.lineageLabel,r.dad,r.mom].some(x=>(x||'').toLowerCase().includes(q));
+    return mq&&(!breed||r.breed===breed);
+  }).sort((a,b)=>(b.spawnDate||b.id)<(a.spawnDate||a.id)?-1:1);
+  const el=document.getElementById('listRecords');
+  if(!rows.length){el.innerHTML=empty('🥚',records.length?'条件に合う記録がありません':'「＋ 記録」から最初の記録を追加しよう');return;}
+  el.innerHTML=rows.map(r=>recCard(r)).join('');
+}
+
+function recCard(r){
+  const chips=[];
+  if(r.lineageLabel) chips.push(`<span class="chip accent">🧬 ${esc(r.lineageLabel)}</span>`);
+  if(r.spawnDate) chips.push(`<span class="chip egg">🥚 ${fmtD(r.spawnDate)}</span>`);
+  if(r.hatchDate) chips.push(`<span class="chip hatch">💧 ${fmtD(r.hatchDate)}</span>`);
+  if(r.selectDate) chips.push(`<span class="chip">✂️ ${fmtD(r.selectDate)}</span>`);
+  if(r.hatchCount) chips.push(`<span class="chip">孵化${esc(r.hatchCount)}</span>`);
+  if(r.tankName) chips.push(`<span class="chip">📦 ${esc(r.tankName)}</span>`);
+  const parents=[r.dad&&`♂${r.dad}`,r.mom&&`♀${r.mom}`].filter(Boolean).join(' × ');
+  const imgH=r.photo?`<img class="card-img" src="${r.photo}" alt="">`:`<div class="card-img">🐟</div>`;
+  let selBar='';
+  if(r.selA||r.selB||r.selC||r.selD){
+    const tot=(+r.selA||0)+(+r.selB||0)+(+r.selC||0)+(+r.selD||0);
+    const pct=n=>tot?Math.round((+n/tot)*100):0;
+    selBar=`<div class="sel-bar">
+      <div class="sel-col sa"><div class="sv">${r.selA||0}</div><div class="sl">A ${pct(r.selA)}%</div></div>
+      <div class="sel-col sb"><div class="sv">${r.selB||0}</div><div class="sl">B ${pct(r.selB)}%</div></div>
+      <div class="sel-col sc"><div class="sv">${r.selC||0}</div><div class="sl">C ${pct(r.selC)}%</div></div>
+      <div class="sel-col sd"><div class="sv">${r.selD||0}</div><div class="sl">ハネ ${pct(r.selD)}%</div></div>
+    </div>`;
+  }
+  // selection reasons summary
+  const allReasons=[...(r.selReasonD||[])].map(x=>`<span class="chip warn">${esc(x)}</span>`).join('');
+  return `<div class="card" onclick="openRecordForm('${r.id}')">
+    <div class="card-top">${imgH}<div class="card-main">
+      <div class="card-name">${esc(r.breed)}</div>
+      ${parents?`<div class="card-sub">${esc(parents)}</div>`:''}
+      <div class="chips">${chips.join('')}</div>
+    </div></div>
+    ${selBar}
+    ${allReasons?`<div class="chips" style="padding:4px 12px 8px">${allReasons}</div>`:''}
+    ${photoTimelineSection(r)}
+    ${survivalSection(r)}
+    ${r.memo?`<div class="card-body">${esc(r.memo)}</div>`:''}
+    <div style="display:flex;gap:6px;padding:0 12px 10px">
+      <button style="flex:1;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;color:var(--muted);font:12px/1 inherit;padding:7px;cursor:pointer" onclick="event.stopPropagation();openAddPhoto('${r.id}')">📸 写真追加</button>
+      <button style="flex:1;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;color:var(--muted);font:12px/1 inherit;padding:7px;cursor:pointer" onclick="event.stopPropagation();openAddSurvival('${r.id}')">📈 生存数</button>
+    </div>
+  </div>`;
+}
+
+function openRecordForm(id){
+  editId=id||null; editType='record'; photoUrl=null;
+  const r=id?records.find(x=>x.id===id):{};
+  const isB=mode==='breeder';
+
+  const linOpts=`<option value="">なし</option>`+lineages.map(l=>`<option value="${l.id}"${r.lineageId===l.id?' selected':''}>${esc(l.name)} ${l.gen?'F'+l.gen:''}</option>`).join('');
+  const tankOpts=`<option value="">なし</option>`+tanks.map(t=>`<option value="${t.id}"${r.tankId===t.id?' selected':''}>${esc(t.name)}</option>`).join('');
+  const seedBadges=seeds.map(s=>`<span class="badge${(r.seedIds||[]).includes(s.id)?' on':''}" onclick="this.classList.toggle('on')" data-sid="${s.id}">${esc(s.sex||'')}${esc(s.name)}</span>`).join('');
+
+  const cbGroup=(grade,label,color)=>{
+    const reasons=SEL_REASONS[grade]||[];
+    const cur=r[`selReason${grade}`]||[];
+    return `<div style="margin-bottom:8px">
+      <div style="font-size:11px;color:${color};margin-bottom:4px">${label}</div>
+      <div class="cb-grid">${reasons.map(rs=>`
+        <label class="cb-item">
+          <input type="checkbox" name="reason${grade}" value="${rs}"${cur.includes(rs)?' checked':''}> ${rs}
+        </label>`).join('')}
+      </div>
+    </div>`;
+  };
+
+  document.getElementById('sheet').innerHTML=`
+    <div class="sheet-hdr"><h2>${id?'記録を編集':'新しい記録'}</h2><button onclick="closeSheet()">×</button></div>
+    <span class="f-lbl">品種名 *</span>
+    <input class="f-in" id="fBreed" type="text" placeholder="例：三色ラメ幹之" value="${esc(r.breed||'')}">
+    ${isB?`<span class="f-lbl">系統</span><select class="f-in" id="fLinId">${linOpts}</select>`:''}
+    <span class="f-lbl">親♂</span>
+    <input class="f-in" id="fDad" type="text" placeholder="例：F3 体外光強め" value="${esc(r.dad||'')}">
+    <span class="f-lbl">親♀</span>
+    <input class="f-in" id="fMom" type="text" placeholder="例：F2 三色濃い個体" value="${esc(r.mom||'')}">
+    <div class="two">
+      <div><span class="f-lbl">産卵日</span><input class="f-in" id="fSpawn" type="date" value="${r.spawnDate||''}"></div>
+      <div><span class="f-lbl">孵化日</span><input class="f-in" id="fHatch" type="date" value="${r.hatchDate||''}"></div>
+    </div>
+    <div class="two">
+      <div><span class="f-lbl">孵化数</span><input class="f-in" id="fHatchCnt" type="number" min="0" placeholder="0" value="${r.hatchCount||''}"></div>
+      <div><span class="f-lbl">選別日</span><input class="f-in" id="fSel" type="date" value="${r.selectDate||''}"></div>
+    </div>
+    ${isB?`
+    <div class="f-sec">
+      <div class="f-sec-title">✂️ 選別結果 + 理由</div>
+      <div class="two" style="margin-bottom:10px">
+        <div><span class="f-lbl">A（上位）匹数</span><input class="f-in" id="fSelA" type="number" min="0" placeholder="0" value="${r.selA||''}"></div>
+        <div><span class="f-lbl">B（普通）匹数</span><input class="f-in" id="fSelB" type="number" min="0" placeholder="0" value="${r.selB||''}"></div>
+      </div>
+      <div class="two" style="margin-bottom:10px">
+        <div><span class="f-lbl">C（下位）匹数</span><input class="f-in" id="fSelC" type="number" min="0" placeholder="0" value="${r.selC||''}"></div>
+        <div><span class="f-lbl">ハネ 匹数</span><input class="f-in" id="fSelD" type="number" min="0" placeholder="0" value="${r.selD||''}"></div>
+      </div>
+      ${cbGroup('A','✅ A選別理由（良かった点）','var(--accent2)')}
+      ${cbGroup('B','🔵 B選別理由','var(--water)')}
+      ${cbGroup('C','⬜ C選別理由（残したが課題）','var(--muted)')}
+      ${cbGroup('D','❌ ハネ理由','var(--warn)')}
+    </div>
+    <div class="f-sec">
+      <div class="f-sec-title">📦 容器・種親</div>
+      <span class="f-lbl">容器</span><select class="f-in" id="fTankId">${tankOpts}</select>
+      ${seeds.length?`<span class="f-lbl">関連種親</span><div class="badge-pick" id="seedBadges">${seedBadges}</div>`:''}
+    </div>
+    <div class="f-sec">
+      <div class="f-sec-title">💀 死亡・淘汰記録</div>
+      <div class="two">
+        <div><span class="f-lbl">死亡・淘汰数</span><input class="f-in" id="fDeathCnt" type="number" min="0" placeholder="0" value="${r.deathCount||''}"></div>
+        <div><span class="f-lbl">理由</span><select class="f-in" id="fDeathReason">
+          <option value="">選択…</option>${DEATH_REASONS.map(dr=>`<option${r.deathReason===dr?' selected':''}>${dr}</option>`).join('')}
+        </select></div>
+      </div>
+    </div>`:''}
+    <span class="f-lbl">メモ</span>
+    <textarea class="f-in" id="fMemo" placeholder="特徴・選別結果など…">${esc(r.memo||'')}</textarea>
+    <span class="f-lbl">写真（任意）</span>
+    <div class="photo-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M9 5l1.5-2h3L15 5"/></svg>
+      <span>タップして写真を選ぶ</span>
+      <input type="file" accept="image/*" onchange="prevPhoto(event)">
+      <img id="photoPreview" src="${r.photo||''}" style="${r.photo?'':'display:none'}">
+    </div>
+    <div class="btn-row">
+      <button class="btn-save" onclick="saveRecord()">保存</button>
+      ${id?`<button class="btn-del" onclick="delRecord()">削除</button>`:''}
+    </div>`;
+  if(r.photo) photoUrl=r.photo;
+  showSheet();
+}
+
+function saveRecord(){
+  const breed=v('fBreed').trim(); if(!breed){alert('品種名を入力してください');return;}
+  const isB=mode==='breeder';
+  const linId=isB?v('fLinId'):'';
+  const lin=lineages.find(l=>l.id===linId);
+  const sids=isB?[...document.querySelectorAll('#seedBadges .badge.on')].map(b=>b.dataset.sid):[];
+  const rec={
+    id:editId||uid(), breed,
+    lineageId:linId, lineageLabel:lin?`${lin.name}${lin.gen?' F'+lin.gen:''}` : '',
+    dad:v('fDad').trim(), dadSeedId:'', mom:v('fMom').trim(), momSeedId:'',
+    spawnDate:v('fSpawn'), hatchDate:v('fHatch'), hatchCount:v('fHatchCnt'),
+    selectDate:v('fSel'), selectCount:'',
+    selA:isB?v('fSelA'):'', selB:isB?v('fSelB'):'', selC:isB?v('fSelC'):'', selD:isB?v('fSelD'):'',
+    selReasonA:isB?getChecked('reasonA'):[], selReasonB:isB?getChecked('reasonB'):[],
+    selReasonC:isB?getChecked('reasonC'):[], selReasonD:isB?getChecked('reasonD'):[],
+    tankId:isB?v('fTankId'):'', tankName:isB?tankName(v('fTankId')):'',
+    seedIds:sids, survivalLog:[], deathCount:isB?v('fDeathCnt'):'', deathReason:isB?v('fDeathReason'):'',
+    memo:v('fMemo').trim(), photo:photoUrl||null, updatedAt:new Date().toISOString()
+  };
+  upsert(records,rec,editId); sv(); refreshBreedFilter(); renderRecords(); closeSheet();
+}
+function delRecord(){if(!confirm('この記録を削除しますか？'))return;records=records.filter(r=>r.id!==editId);sv();refreshBreedFilter();renderRecords();closeSheet();}
+function tankName(id){const t=tanks.find(t=>t.id===id);return t?t.name:'';}
+
+/* ============================================================
+   CROSS SEARCH (掛け合わせ検索)
+============================================================ */
+function renderCrossSearch(){
+  return `<div class="cross-box">
+    <h3>🔀 掛け合わせ検索</h3>
+    <div class="cross-row">
+      <input id="xDad" type="text" placeholder="親♂（部分一致）">
+      <span style="color:var(--muted);font-size:18px;padding-bottom:6px">×</span>
+      <input id="xMom" type="text" placeholder="親♀（部分一致）">
+      <button class="btn-search" onclick="runCross()">検索</button>
+    </div>
+    <div class="cross-results" id="crossResults"></div>
+  </div>`;
+}
+function runCross(){
+  const dad=document.getElementById('xDad').value.trim().toLowerCase();
+  const mom=document.getElementById('xMom').value.trim().toLowerCase();
+  if(!dad&&!mom){document.getElementById('crossResults').innerHTML=`<div class="no-result">親♂か親♀を入力してください</div>`;return;}
+  const hits=records.filter(r=>{
+    const md=!dad||(r.dad||'').toLowerCase().includes(dad);
+    const mm=!mom||(r.mom||'').toLowerCase().includes(mom);
+    return md&&mm;
+  }).sort((a,b)=>(b.spawnDate||b.id)<(a.spawnDate||a.id)?-1:1);
+  const el=document.getElementById('crossResults');
+  if(!hits.length){el.innerHTML=`<div class="no-result">一致する記録がありません</div>`;return;}
+  el.innerHTML=`<div style="font-size:12px;color:var(--muted);margin-bottom:6px">${hits.length}件ヒット</div>`+
+    hits.map(r=>`<div class="card" onclick="openRecordForm('${r.id}')" style="margin-bottom:8px">${recCard(r).replace(/<div class="card"[^>]*>/,'<div>')}</div>`).join('');
+}
+
+/* ============================================================
+   TANKS
+============================================================ */
+function renderTanks(){
+  const{q}=getFilter();
+  let rows=tanks.filter(t=>!q||[t.name,t.breed].some(x=>(x||'').toLowerCase().includes(q))).sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  const el=document.getElementById('listTanks');
+  if(!rows.length){el.innerHTML=empty('📦',tanks.length?'条件に合う容器がありません':'「＋ 容器」から容器を追加しよう');return;}
+  el.innerHTML=rows.map(t=>{
+    const cnt=records.filter(r=>r.tankId===t.id).length;
+    const imgH=t.photo?`<img class="card-img" src="${t.photo}" alt="">`:`<div class="card-img">📦</div>`;
+    return `<div class="card" onclick="openTankForm('${t.id}')">
+      <div class="card-top">${imgH}<div class="card-main">
+        <div class="card-name">${esc(t.name)}</div>
+        ${t.breed?`<div class="card-sub">${esc(t.breed)}</div>`:''}
+        <div class="chips">
+          ${t.fishCount?`<span class="chip">🐟 ${esc(t.fishCount)}匹</span>`:''}
+          ${t.fryCount?`<span class="chip hatch">💧 稚魚${esc(t.fryCount)}</span>`:''}
+          ${t.selectDate?`<span class="chip">✂️ ${fmtD(t.selectDate)}</span>`:''}
+          <span class="chip">${cnt}件の記録</span>
+        </div>
+      </div></div>
+      ${t.memo?`<div class="card-body">${esc(t.memo)}</div>`:''}
+      ${tankHistorySection(t)}
+      <div style="padding:0 12px 10px">
+        <button style="width:100%;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;color:var(--muted);font:12px/1 inherit;padding:7px;cursor:pointer" onclick="event.stopPropagation();openAddTankHistory('${t.id}')">＋ 履歴を追加</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function openTankForm(id){
+  editId=id||null; editType='tank'; photoUrl=null;
+  const t=id?tanks.find(x=>x.id===id):{};
+  document.getElementById('sheet').innerHTML=`
+    <div class="sheet-hdr"><h2>${id?'容器を編集':'新しい容器'}</h2><button onclick="closeSheet()">×</button></div>
+    <span class="f-lbl">容器名 *</span><input class="f-in" id="tName" type="text" placeholder="NV13" value="${esc(t.name||'')}">
+    <span class="f-lbl">品種・系統</span><input class="f-in" id="tBreed" type="text" placeholder="サファイアF4" value="${esc(t.breed||'')}">
+    <div class="two">
+      <div><span class="f-lbl">成魚数</span><input class="f-in" id="tFish" type="number" min="0" placeholder="0" value="${t.fishCount||''}"></div>
+      <div><span class="f-lbl">稚魚数</span><input class="f-in" id="tFry" type="number" min="0" placeholder="0" value="${t.fryCount||''}"></div>
+    </div>
+    <span class="f-lbl">次回選別予定日</span><input class="f-in" id="tSelDate" type="date" value="${t.selectDate||''}">
+    <span class="f-lbl">メモ</span><textarea class="f-in" id="tMemo">${esc(t.memo||'')}</textarea>
+    <span class="f-lbl">写真</span>
+    <div class="photo-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M9 5l1.5-2h3L15 5"/></svg>
+      <span>タップして写真を選ぶ</span>
+      <input type="file" accept="image/*" onchange="prevPhoto(event)">
+      <img id="photoPreview" src="${t.photo||''}" style="${t.photo?'':'display:none'}">
+    </div>
+    <div class="btn-row">
+      <button class="btn-save" onclick="saveTank()">保存</button>
+      ${id?`<button class="btn-del" onclick="delTank()">削除</button>`:''}
+    </div>`;
+  if(t.photo) photoUrl=t.photo;
+  showSheet();
+}
+function saveTank(){
+  const name=v('tName').trim(); if(!name){alert('容器名を入力してください');return;}
+  const t={id:editId||uid(),name,breed:v('tBreed').trim(),fishCount:v('tFish'),fryCount:v('tFry'),
+    selectDate:v('tSelDate'),history:[],memo:v('tMemo').trim(),photo:photoUrl||null,updatedAt:new Date().toISOString()};
+  upsert(tanks,t,editId); sv(); renderTanks(); closeSheet();
+}
+function delTank(){
+  if(!confirm('この容器を削除しますか？'))return;
+  tanks=tanks.filter(t=>t.id!==editId);
+  records=records.map(r=>r.tankId===editId?{...r,tankId:'',tankName:''}:r);
+  sv(); renderTanks(); closeSheet();
+}
+
+/* ============================================================
+   SEEDS
+============================================================ */
+function renderSeeds(){
+  const{q}=getFilter();
+  let rows=seeds.filter(s=>!q||[s.name,s.breed].some(x=>(x||'').toLowerCase().includes(q))).sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  const el=document.getElementById('listSeeds');
+  if(!rows.length){el.innerHTML=empty('🐟',seeds.length?'条件に合う種親がありません':'「＋ 種親」から種親を登録しよう');return;}
+  el.innerHTML=rows.map(s=>{
+    const linked=records.filter(r=>(r.seedIds||[]).includes(s.id));
+    const totalFry=linked.reduce((a,r)=>{const c=parseInt(r.hatchCount)||0;return a+c;},0);
+    const imgH=s.photo?`<img class="card-img" src="${s.photo}" alt="">`:`<div class="card-img" style="font-size:18px;font-weight:700">${s.sex||'🐟'}</div>`;
+    return `<div class="card" onclick="openSeedForm('${s.id}')">
+      <div class="card-top">${imgH}<div class="card-main">
+        <div class="card-name">${esc(s.sex||'')} ${esc(s.name)}</div>
+        ${s.breed?`<div class="card-sub">${esc(s.breed)}</div>`:''}
+        <div class="chips">
+          <span class="chip">${linked.length}腹</span>
+          ${totalFry?`<span class="chip hatch">累計${totalFry}匹</span>`:''}
+          ${s.status?`<span class="chip${s.status==='引退'||s.status==='死亡'?' warn':s.status==='販売'?' good':''}">${esc(s.status)}</span>`:''}
+          ${s.lineageId?`<span class="chip accent">🧬</span>`:''}
+        </div>
+      </div></div>
+      ${s.memo?`<div class="card-body">${esc(s.memo)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+function openSeedForm(id){
+  editId=id||null; editType='seed'; photoUrl=null;
+  const s=id?seeds.find(x=>x.id===id):{};
+  const linked=id?records.filter(r=>(r.seedIds||[]).includes(id)):[];
+  const linOpts=`<option value="">なし</option>`+lineages.map(l=>`<option value="${l.id}"${s.lineageId===l.id?' selected':''}>${esc(l.name)}${l.gen?' F'+l.gen:''}</option>`).join('');
+  document.getElementById('sheet').innerHTML=`
+    <div class="sheet-hdr"><h2>${id?'種親を編集':'新しい種親'}</h2><button onclick="closeSheet()">×</button></div>
+    <div class="two">
+      <div><span class="f-lbl">性別</span><select class="f-in" id="sSex"><option${(s.sex||'')==='♂'?' selected':''}>♂</option><option${(s.sex||'')==='♀'?' selected':''}>♀</option></select></div>
+      <div><span class="f-lbl">状態</span><select class="f-in" id="sStatus"><option value="">現役</option>${['引退','販売','死亡'].map(st=>`<option${s.status===st?' selected':''}>${st}</option>`).join('')}</select></div>
+    </div>
+    <span class="f-lbl">個体名 *</span><input class="f-in" id="sName" type="text" placeholder="例：オス①、赤ラメ特上" value="${esc(s.name||'')}">
+    <span class="f-lbl">品種</span><input class="f-in" id="sBreed" type="text" placeholder="例：三色ラメ幹之" value="${esc(s.breed||'')}">
+    <span class="f-lbl">系統</span><select class="f-in" id="sLinId">${linOpts}</select>
+    ${s.status==='死亡'?`<span class="f-lbl">死亡理由</span><select class="f-in" id="sDeathReason"><option value="">選択…</option>${DEATH_REASONS.map(dr=>`<option${s.deathReason===dr?' selected':''}>${dr}</option>`).join('')}</select>`:'<select id="sDeathReason" style="display:none"></select>'}
+    <span class="f-lbl">特徴メモ</span><textarea class="f-in" id="sMemo">${esc(s.memo||'')}</textarea>
+    <span class="f-lbl">写真</span>
+    <div class="photo-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M9 5l1.5-2h3L15 5"/></svg>
+      <span>タップして写真を選ぶ</span>
+      <input type="file" accept="image/*" onchange="prevPhoto(event)">
+      <img id="photoPreview" src="${s.photo||''}" style="${s.photo?'':'display:none'}">
+    </div>
+    ${linked.length?`<div class="f-sec"><div class="f-sec-title">📋 この種親の記録（${linked.length}腹）</div>
+      ${linked.slice(0,5).map(r=>`<div class="tbl-row"><span>${esc(r.breed)} ${fmtD(r.spawnDate)}</span><span class="tbl-val">${r.hatchCount?r.hatchCount+'匹':''}</span></div>`).join('')}
+      ${linked.length>5?`<div style="font-size:11px;color:var(--dim);margin-top:4px">他 ${linked.length-5} 件</div>`:''}
+    </div>`:''}
+    <div class="btn-row">
+      <button class="btn-save" onclick="saveSeed()">保存</button>
+      ${id?`<button class="btn-del" onclick="delSeed()">削除</button>`:''}
+    </div>`;
+  if(s.photo) photoUrl=s.photo;
+  showSheet();
+}
+function saveSeed(){
+  const name=v('sName').trim(); if(!name){alert('個体名を入力してください');return;}
+  const s={id:editId||uid(),sex:v('sSex'),name,breed:v('sBreed').trim(),lineageId:v('sLinId'),
+    status:v('sStatus'),deathReason:v('sDeathReason'),memo:v('sMemo').trim(),photo:photoUrl||null,updatedAt:new Date().toISOString()};
+  upsert(seeds,s,editId); sv(); renderSeeds(); closeSheet();
+}
+function delSeed(){
+  if(!confirm('この種親を削除しますか？'))return;
+  seeds=seeds.filter(s=>s.id!==editId);
+  records=records.map(r=>({...r,seedIds:(r.seedIds||[]).filter(id=>id!==editId)}));
+  sv(); renderSeeds(); closeSheet();
+}
+
+/* ============================================================
+   LINEAGE (系統管理)
+============================================================ */
+function renderLineage(){
+  const{q}=getFilter();
+  const el=document.getElementById('listLineage');
+  // cross search always at top
+  let html=renderCrossSearch();
+  let rows=lineages.filter(l=>!q||[l.name,l.breed,l.notes].some(x=>(x||'').toLowerCase().includes(q))).sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  if(!rows.length){
+    el.innerHTML=html+empty('🧬',lineages.length?'条件に合う系統がありません':'「＋ 系統」から系統を登録しよう');return;
+  }
+  html+=rows.map(l=>{
+    const recCnt=records.filter(r=>r.lineageId===l.id).length;
+    const seedCnt=seeds.filter(s=>s.lineageId===l.id).length;
+    return `<div class="card" onclick="openLineageForm('${l.id}')">
+      <div class="card-top"><div class="card-img">🧬</div><div class="card-main">
+        <div class="card-name">${esc(l.name)}${l.gen?` <span class="lineage-pill">F${l.gen}</span>`:''}</div>
+        ${l.breed?`<div class="card-sub">${esc(l.breed)}</div>`:''}
+        <div class="chips">
+          <span class="chip">${recCnt}件の記録</span>
+          <span class="chip">${seedCnt}匹の種親</span>
+        </div>
+      </div></div>
+      ${l.notes?`<div class="card-body">${esc(l.notes)}</div>`:''}
+    </div>`;
+  }).join('');
+  el.innerHTML=html;
+}
+function openLineageForm(id){
+  editId=id||null; editType='lineage'; photoUrl=null;
+  const l=id?lineages.find(x=>x.id===id):{};
+  document.getElementById('sheet').innerHTML=`
+    <div class="sheet-hdr"><h2>${id?'系統を編集':'新しい系統'}</h2><button onclick="closeSheet()">×</button></div>
+    <span class="f-lbl">系統名 *</span><input class="f-in" id="lName" type="text" placeholder="例：2026-A系統、サファイア選抜" value="${esc(l.name||'')}">
+    <span class="f-lbl">品種</span><input class="f-in" id="lBreed" type="text" placeholder="例：夜桜" value="${esc(l.breed||'')}">
+    <span class="f-lbl">F代（世代）</span><input class="f-in" id="lGen" type="number" min="1" placeholder="例：6" value="${l.gen||''}">
+    <span class="f-lbl">メモ・選抜方針</span><textarea class="f-in" id="lNotes" placeholder="例：ラメ重視で選別継続中…">${esc(l.notes||'')}</textarea>
+    <div class="btn-row">
+      <button class="btn-save" onclick="saveLineage()">保存</button>
+      ${id?`<button class="btn-del" onclick="delLineage()">削除</button>`:''}
+    </div>`;
+  showSheet();
+}
+function saveLineage(){
+  const name=v('lName').trim(); if(!name){alert('系統名を入力してください');return;}
+  const l={id:editId||uid(),name,breed:v('lBreed').trim(),gen:v('lGen'),notes:v('lNotes').trim(),updatedAt:new Date().toISOString()};
+  upsert(lineages,l,editId); sv();
+  // update lineageLabel in records
+  records=records.map(r=>r.lineageId===l.id?{...r,lineageLabel:`${l.name}${l.gen?' F'+l.gen:''}`}:r);
+  sv(); renderLineage(); closeSheet();
+}
+function delLineage(){
+  if(!confirm('この系統を削除しますか？'))return;
+  lineages=lineages.filter(l=>l.id!==editId);
+  sv(); renderLineage(); closeSheet();
+}
+
+/* ============================================================
+   STATS
+============================================================ */
+function renderStats(){
+  const el=document.getElementById('statsEl');
+  if(!records.length){el.innerHTML=`<div class="empty"><big>📊</big><p>記録がまだありません</p></div>`;return;}
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth()+1;
+  const thisMonth=records.filter(r=>r.spawnDate&&r.spawnDate.startsWith(`${y}-${String(m).padStart(2,'0')}`)).length;
+  const breeds={};
+  records.forEach(r=>{breeds[r.breed]=(breeds[r.breed]||0)+1;});
+  const sortedBreeds=Object.entries(breeds).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  let totA=0,totB=0,totC=0,totD=0;
+  records.forEach(r=>{totA+=(+r.selA||0);totB+=(+r.selB||0);totC+=(+r.selC||0);totD+=(+r.selD||0);});
+  const totSel=totA+totB+totC+totD;
+  const pct=n=>totSel?Math.round((n/totSel)*100):0;
+  const selSection=totSel?`<div class="stat-card">
+    <div class="stat-lbl">累計選別結果</div>
+    <div class="stat-big">${totSel}<span style="font-size:13px;font-weight:400;color:var(--muted)"> 匹</span></div>
+    <div class="rate-wrap">${[['A',totA,'var(--accent2)'],['B',totB,'var(--water)'],['C',totC,'var(--muted)'],['ハネ',totD,'var(--warn)']].map(([l,n,c])=>`
+      <div class="rate-row"><span class="rate-lbl">${l}</span>
+        <div class="rate-bar"><div class="rate-fill" style="width:${pct(n)}%;background:${c}"></div></div>
+        <span class="rate-num">${n} <span style="color:var(--muted)">${pct(n)}%</span></span>
+      </div>`).join('')}
+    </div></div>`:'';
+  // selection reasons analysis
+  const reasonTally={};
+  records.forEach(r=>{
+    (r.selReasonD||[]).forEach(rs=>{reasonTally[rs]=(reasonTally[rs]||0)+(+r.selD||1);});
+  });
+  const topReasons=Object.entries(reasonTally).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const reasonSection=topReasons.length?`<div class="stat-card">
+    <div class="stat-lbl">ハネ理由 上位</div>
+    ${topReasons.map(([rs,n])=>`<div class="tbl-row"><span>${esc(rs)}</span><span class="tbl-val warn" style="color:var(--warn)">${n}件</span></div>`).join('')}
+  </div>`:'';
+  el.innerHTML=`
+    <div class="stat-card"><div class="stat-lbl">総記録数</div><div class="stat-big">${records.length}</div><div class="stat-sub">容器 ${tanks.length} / 種親 ${seeds.length} / 系統 ${lineages.length}</div></div>
+    <div class="stat-card"><div class="stat-lbl">今月の産卵記録</div><div class="stat-big">${thisMonth}</div><div class="stat-sub">${y}年${m}月</div></div>
+    ${selSection}
+    ${reasonSection}
+    <div class="stat-card"><div class="stat-lbl">品種別記録数</div>${sortedBreeds.map(([b,n])=>`<div class="tbl-row"><span>${esc(b)}</span><span class="tbl-val">${n}</span></div>`).join('')}</div>`;
+}
+
+/* ============================================================
+   SHARED
+============================================================ */
+function upsert(arr,item,id){
+  if(id){const i=arr.findIndex(x=>x.id===id);if(i>=0)arr[i]=item;else arr.push(item);}
+  else arr.push(item);
+}
+function prevPhoto(e){
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{photoUrl=ev.target.result;const img=document.getElementById('photoPreview');if(img){img.src=photoUrl;img.style.display='block';}};
+  rd.readAsDataURL(f);e.target.value='';
+}
+function showSheet(){document.getElementById('overlay').classList.add('show');}
+function closeSheet(){document.getElementById('overlay').classList.remove('show');}
+function bgClose(e){if(e.target===document.getElementById('overlay'))closeSheet();}
+function empty(icon,msg){return `<div class="empty"><big>${icon}</big><p>${msg}</p></div>`;}
+
+/* ============================================================
+   PHOTO COMPARE  (複数写真を記録に紐づけ・成長比較)
+============================================================ */
+// recordのphotoTimeline: [{url, date, label, note}]
+
+function photoTimelineSection(r){
+  const tl = r.photoTimeline||[];
+  const allPhotos = [...(r.photo?[{url:r.photo,date:r.spawnDate||'',label:'メイン'}]:[]), ...tl];
+  if(!allPhotos.length) return '';
+  return `<div class="photo-compare">${allPhotos.map(p=>`
+    <div class="photo-compare-item">
+      <img src="${p.url}" alt="" onclick="openPhotoViewer('${p.url}')">
+      <div class="pc-lbl">${esc(p.label||'')}</div>
+      <div class="pc-date">${fmtD(p.date||'')}</div>
+    </div>`).join('')}</div>`;
+}
+
+function openPhotoViewer(url){
+  // full-screen photo overlay
+  const d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:#000;z-index:30;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  d.innerHTML=`<img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain">`;
+  d.onclick=()=>d.remove();
+  document.body.appendChild(d);
+}
+
+function openAddPhoto(recId){
+  editId=recId; editType='photo'; photoUrl=null;
+  document.getElementById('sheet').innerHTML=`
+    <div class="sheet-hdr"><h2>📸 成長写真を追加</h2><button onclick="closeSheet()">×</button></div>
+    <span class="f-lbl">ラベル（例：30日目、選別後）</span>
+    <input class="f-in" id="phLabel" type="text" placeholder="30日目">
+    <span class="f-lbl">撮影日</span>
+    <input class="f-in" id="phDate" type="date" value="${today()}">
+    <span class="f-lbl">メモ</span>
+    <input class="f-in" id="phNote" type="text" placeholder="体外光が出てきた など">
+    <span class="f-lbl">写真 *</span>
+    <div class="photo-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M9 5l1.5-2h3L15 5"/></svg>
+      <span>タップして写真を選ぶ</span>
+      <input type="file" accept="image/*" onchange="prevPhoto(event)">
+      <img id="photoPreview" style="display:none">
+    </div>
+    <div class="btn-row"><button class="btn-save" onclick="saveAddPhoto()">追加</button></div>`;
+  showSheet();
+}
+
+function saveAddPhoto(){
+  if(!photoUrl){alert('写真を選んでください');return;}
+  const r=records.find(x=>x.id===editId); if(!r) return;
+  if(!r.photoTimeline) r.photoTimeline=[];
+  r.photoTimeline.push({url:photoUrl,date:v('phDate'),label:v('phLabel').trim(),note:v('phNote').trim()});
+  r.updatedAt=new Date().toISOString();
+  sv(); renderRecords(); closeSheet();
+}
+
+/* ============================================================
+   SURVIVAL LOG  (生存率追跡)
+============================================================ */
+function survivalSection(r){
+  const log=r.survivalLog||[];
+  if(!log.length) return '';
+  const base=+(r.hatchCount)||+(log[0]&&log[0].count)||0;
+  return `<div style="padding:2px 12px 10px">
+    <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:6px">📈 生存率ログ</div>
+    ${log.map(entry=>{
+      const rate=base?Math.round((entry.count/base)*100):null;
+      return `<div class="surv-row">
+        <div class="surv-cnt">${entry.count}<span style="font-size:10px;color:var(--muted)">匹</span></div>
+        <div class="surv-bar"><div class="surv-fill" style="width:${rate||0}%"></div></div>
+        <div class="surv-rate">${rate!=null?rate+'%':''}</div>
+        <div style="font-size:11px;color:var(--muted)">${fmtD(entry.date)} ${esc(entry.note||'')}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function openAddSurvival(recId){
+  editId=recId; editType='survival';
+  const r=records.find(x=>x.id===recId)||{};
+  document.getElementById('sheet').innerHTML=`
+    <div class="sheet-hdr"><h2>📈 生存数を記録</h2><button onclick="closeSheet()">×</button></div>
+    ${r.hatchCount?`<div style="font-size:12px;color:var(--muted);margin-bottom:10px">孵化数: <b style="color:var(--accent2)">${r.hatchCount}匹</b>（基準値）</div>`:''}
+    <span class="f-lbl">記録日</span>
+    <input class="f-in" id="svDate" type="date" value="${today()}">
+    <span class="f-lbl">現在の生存数</span>
+    <input class="f-in" id="svCount" type="number" min="0" placeholder="0">
+    <span class="f-lbl">メモ（例：30日目、水換え後）</span>
+    <input class="f-in" id="svNote" type="text" placeholder="30日目">
+    <div class="btn-row"><button class="btn-save" onclick="saveAddSurvival()">記録</button></div>`;
+  showSheet();
+}
+
+function saveAddSurvival(){
+  const cnt=v('svCount'); if(cnt===''){alert('生存数を入力してください');return;}
+  const r=records.find(x=>x.id===editId); if(!r) return;
+  if(!r.survivalLog) r.survivalLog=[];
+  r.survivalLog.push({date:v('svDate'),count:+cnt,note:v('svNote').trim()});
+  r.survivalLog.sort((a,b)=>a.date<b.date?-1:1);
+  r.updatedAt=new Date().toISOString();
+  sv(); renderRecords(); closeSheet();
+}
+
+/* ============================================================
+   TANK HISTORY  (容器履歴)
+============================================================ */
+function tankHistorySection(t){
+  const hist=t.history||[];
+  if(!hist.length) return '';
+  return `<div style="padding:2px 12px 10px">
+    <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px">📋 容器履歴</div>
+    ${hist.slice().reverse().map((h,i)=>`<div class="hist-row">
+      <div class="hist-date">${fmtD(h.date)}</div>
+      <div class="hist-body">${esc(h.note)}</div>
+      <div class="hist-del" onclick="delTankHistory('${t.id}',${hist.length-1-i})">×</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function openAddTankHistory(tankId){
+  editId=tankId; editType='tankHistory';
+  document.getElementById('sheet').innerHTML=`
+    <div class="sheet-hdr"><h2>📋 容器履歴を追加</h2><button onclick="closeSheet()">×</button></div>
+    <span class="f-lbl">日付</span>
+    <input class="f-in" id="thDate" type="date" value="${today()}">
+    <span class="f-lbl">内容（例：80匹確認、A15 B20 C20 ハネ10）</span>
+    <textarea class="f-in" id="thNote" placeholder="80匹確認"></textarea>
+    <div class="btn-row"><button class="btn-save" onclick="saveAddTankHistory()">追加</button></div>`;
+  showSheet();
+}
+
+function saveAddTankHistory(){
+  const note=v('thNote').trim(); if(!note){alert('内容を入力してください');return;}
+  const t=tanks.find(x=>x.id===editId); if(!t) return;
+  if(!t.history) t.history=[];
+  t.history.push({date:v('thDate'),note});
+  t.history.sort((a,b)=>a.date<b.date?-1:1);
+  t.updatedAt=new Date().toISOString();
+  sv(); renderTanks(); closeSheet();
+}
+
+function delTankHistory(tankId,idx){
+  if(!confirm('この履歴を削除しますか？'))return;
+  const t=tanks.find(x=>x.id===tankId); if(!t||!t.history) return;
+  t.history.splice(idx,1); sv(); renderTanks();
+}
+
+/* ============================================================
+   CSV / JSON EXPORT & IMPORT
+============================================================ */
+const CSV_HEADERS = {
+  records:[
+    'id','breed','lineageId','lineageLabel',
+    'dad','dadSeedId','mom','momSeedId',
+    'spawnDate','hatchDate','hatchCount',
+    'selectDate','selectCount',
+    'selA','selB','selC','selD',
+    'selReasonA','selReasonB','selReasonC','selReasonD',
+    'tankId','tankName','seedIds',
+    'deathCount','deathReason',
+    'memo','updatedAt'
+  ],
+  tanks:['id','name','breed','lineageId','fishCount','fryCount','selectDate','memo','updatedAt'],
+  seeds:['id','sex','name','breed','lineageId','status','deathReason','memo','updatedAt']
+};
+
+function csvCell(v){
+  if(Array.isArray(v)) v=v.join('|');
+  v=String(v==null?'':v);
+  if(v.includes(',')||v.includes('"')||v.includes('\n')) v='"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+function toCSV(rows, headers){
+  const bom='\uFEFF';
+  const head=headers.join(',');
+  const body=rows.map(r=>headers.map(h=>csvCell(r[h])).join(',')).join('\n');
+  return bom+head+'\n'+body;
+}
+function download(filename, content, mime){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download=filename; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+}
+function dateStamp(){return new Date().toISOString().slice(0,10).replace(/-/g,'');}
+
+function exportCSV(type){
+  const map={records,tanks,seeds};
+  const rows=map[type]; if(!rows||!rows.length){alert('データがありません');return;}
+  const headers=CSV_HEADERS[type];
+  const label={records:'繁殖記録',tanks:'容器',seeds:'種親'}[type];
+  download(`medaka_${type}_${dateStamp()}.csv`, toCSV(rows,headers), 'text/csv;charset=utf-8');
+}
+
+function exportAll(){
+  const payload={
+    version:'1.1', exportedAt:new Date().toISOString(),
+    records, tanks, seeds, lineages
+  };
+  download(`medaka_backup_${dateStamp()}.json`, JSON.stringify(payload,null,2), 'application/json');
+}
+
+function importAll(e){
+  const f=e.target.files&&e.target.files[0]; if(!f)return;
+  if(!confirm('インポートすると現在のデータがすべて上書きされます。続けますか？')){e.target.value='';return;}
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!data.records){alert('このファイルはめだか繁殖ログのバックアップではありません');return;}
+      records=data.records||[];
+      tanks=data.tanks||[];
+      seeds=data.seeds||[];
+      lineages=data.lineages||[];
+      // migrate imported data
+      records=records.map(r=>({
+        lineageId:r.lineageId||'',lineageLabel:r.lineageLabel||'',
+        hatchCount:r.hatchCount||r.count||'',selReasonA:r.selReasonA||[],
+        selReasonB:r.selReasonB||[],selReasonC:r.selReasonC||[],selReasonD:r.selReasonD||[],
+        deathCount:r.deathCount||'',deathReason:r.deathReason||'',
+        seedIds:r.seedIds||[],survivalLog:r.survivalLog||[],...r
+      }));
+      sv(); refreshBreedFilter(); renderStats();
+      alert(`インポート完了\n記録 ${records.length}件 / 容器 ${tanks.length}件 / 種親 ${seeds.length}件 / 系統 ${lineages.length}件`);
+    }catch(err){alert('ファイルの読み込みに失敗しました。正しいJSONファイルか確認してください。');}
+    e.target.value='';
+  };
+  rd.readAsText(f);
+}
+
+/* ============================================================
+   UNLOCK (ブリーダーモード解除コード)
+============================================================ */
+const UNLOCK_KEY = 'mdUnlocked_v1';
+// コードはSHA-256ハッシュで比較 — 平文をソースに残さない
+const CODE_HASH = '21732a2f14b4147319407c5bf04140414ee86399eec131f9e460fb1079b07d80';
+
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function isUnlocked(){return localStorage.getItem(UNLOCK_KEY)==='1';}
+
+function breederTap(){
+  if(isUnlocked()){setMode('breeder');}
+  else{openUnlockSheet();}
+}
+
+function openUnlockSheet(){
+  document.getElementById('sheet').innerHTML=`
+    <div class="sheet-hdr"><h2>🔓 ブリーダーモードを解除</h2><button onclick="closeSheet()">×</button></div>
+    <div style="text-align:center;font-size:36px;margin:10px 0 14px">🐟</div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:16px;text-align:center">
+      ブリーダーモードでは<br>
+      容器管理・種親管理・系統管理<br>
+      選別理由・掛け合わせ検索<br>
+      CSV出力・生存率・写真比較<br>
+      などの機能が使えます。
+    </p>
+    <p style="font-size:12px;color:var(--dim);text-align:center;margin-bottom:14px">
+      noteで購入後に記載されている<br>解除コードを入力してください
+    </p>
+    <input class="unlock-input" id="unlockCode" type="text" placeholder="解除コード" maxlength="20"
+      oninput="document.getElementById('unlockErr').textContent=''">
+    <div class="unlock-err" id="unlockErr"></div>
+    <button class="btn-save" onclick="tryUnlock()" style="width:100%;margin-bottom:10px">解除する</button>
+    <a href="https://note.com" target="_blank"
+      style="display:block;text-align:center;font-size:13px;color:var(--accent);text-decoration:underline;margin-bottom:6px">
+      noteで購入する →
+    </a>
+    <p style="font-size:11px;color:var(--dim);text-align:center">一度解除すればこの端末では永久に有効です</p>`;
+  showSheet();
+  setTimeout(()=>document.getElementById('unlockCode')&&document.getElementById('unlockCode').focus(),300);
+}
+
+async function tryUnlock(){
+  const code=document.getElementById('unlockCode').value.trim();
+  if(!code){document.getElementById('unlockErr').textContent='コードを入力してください';return;}
+  const hash=await sha256(code);
+  if(hash===CODE_HASH){
+    localStorage.setItem(UNLOCK_KEY,'1');
+    closeSheet();
+    setMode('breeder');
+    // celebrate
+    document.getElementById('modeBreeder').textContent='ブリーダー ✓';
+    setTimeout(()=>{document.getElementById('modeBreeder').textContent='ブリーダー';},3000);
+    alert('🎉 ブリーダーモードが解除されました！\nご購入ありがとうございます。');
+  } else {
+    document.getElementById('unlockErr').textContent='コードが違います。もう一度確認してください。';
+  }
+}
+
+// on boot: restore breeder mode if already unlocked
+function restoreMode(){
+  if(isUnlocked()){
+    // silently allow breeder mode
+    document.getElementById('modeBreeder').onclick=()=>setMode('breeder');
+  }
+}
+
+/* ============================================================
+   BOOT — migrate old data keys if present
+============================================================ */
+records=ld(K.rec); tanks=ld(K.tank); seeds=ld(K.seed); lineages=ld(K.lin);
+// migrate v1 records that lack new fields
+records=records.map(r=>({
+  lineageId:r.lineageId||'', lineageLabel:r.lineageLabel||'',
+  hatchCount:r.hatchCount||r.count||'', selReasonA:r.selReasonA||[],
+  selReasonB:r.selReasonB||[], selReasonC:r.selReasonC||[], selReasonD:r.selReasonD||[],
+  deathCount:r.deathCount||'', deathReason:r.deathReason||'',
+  seedIds:r.seedIds||[], survivalLog:r.survivalLog||[], ...r
+}));
+refreshBreedFilter(); renderActive();
+</script>
+</body>
+</html>
